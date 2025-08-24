@@ -1,0 +1,35 @@
+# =============================================================================
+# Traefik Helm Values
+# =============================================================================
+
+# Dashboard configuration
+dashboard:
+  enabled: true
+  auth:
+    basic:
+      admin: $2y$10$admin123
+
+# Ingress configuration
+ingressRoute:
+  dashboard:
+    enabled: true
+
+# Service configuration
+service:
+  type: NodePort
+  ports:
+    web:
+      port: 80
+      nodePort: 80
+    websecure:
+      port: 443
+      nodePort: 443
+
+# Resources
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+  limits:
+    memory: 128Mi
+    cpu: 100m

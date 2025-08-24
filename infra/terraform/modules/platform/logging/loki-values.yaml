@@ -1,0 +1,26 @@
+# =============================================================================
+# Loki Helm Values Template - Simplified
+# =============================================================================
+
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+  limits:
+    memory: 128Mi
+    cpu: 100m
+
+service:
+  type: NodePort
+  nodePort: 3100
+
+ingress:
+  enabled: false
+
+loki:
+  auth_enabled: false
+  singleBinary:
+    replicas: 1
