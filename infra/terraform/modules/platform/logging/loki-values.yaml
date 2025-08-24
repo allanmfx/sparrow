@@ -1,26 +1,73 @@
 # =============================================================================
-# Loki Helm Values Template - Simplified
+# Loki Helm Values - Minimal Configuration (v6.37.0)
 # =============================================================================
 
-persistence:
+# Deployment mode (transitional para permitir SingleBinary)
+deploymentMode: "SingleBinary<->SimpleScalable"
+
+# Use Test deployment mode for development
+test:
   enabled: false
 
-resources:
-  requests:
-    memory: 64Mi
-    cpu: 50m
-  limits:
-    memory: 128Mi
-    cpu: 100m
+# SingleBinary configuration
+singleBinary:
+  replicas: 1
+  resources:
+    limits:
+      memory: 512Mi
+      cpu: 400m
+    requests:
+      memory: 256Mi
+      cpu: 200m
 
-service:
-  type: NodePort
-  nodePort: 3100
-
-ingress:
+# Gateway configuration
+gateway:
   enabled: false
 
+# Enable memcached components com recursos menores para desenvolvimento local
+chunksCache:
+  enabled: true
+  replicas: 1
+  resources:
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+
+resultsCache:
+  enabled: true
+  replicas: 1
+  resources:
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+
+# Loki configuration
 loki:
   auth_enabled: false
-  singleBinary:
-    replicas: 1
+
+  commonConfig:
+    replication_factor: 1
+
+  storage:
+    type: filesystem
+
+  schemaConfig:
+    configs:
+      - from: 2024-01-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+# Monitoring
+monitoring:
+  serviceMonitor:
+    enabled: true

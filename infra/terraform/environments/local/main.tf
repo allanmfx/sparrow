@@ -1,5 +1,5 @@
 # =============================================================================
-# Local Environment Configuration
+# Local Environment Configuration - Professional Setup
 # Development setup with Kind cluster
 # =============================================================================
 
@@ -10,7 +10,7 @@ locals {
   common_tags = {
     Environment = local.environment
     ManagedBy   = "terraform"
-    Project     = "system-design"
+    Project     = "sparrow"
   }
 
   # Generate bcrypt hash for ArgoCD admin password
@@ -70,24 +70,24 @@ module "monitoring" {
   tags = local.common_tags
 }
 
-# module "logging" {
-#   source = "../../modules/platform/logging"
-#   
-#   namespace      = "monitoring"
-#   service_type   = "NodePort"
-#   loki_node_port = 3100
-#   
-#   resources = {
-#     loki = {
-#       requests = { memory = "128Mi", cpu = "100m" }
-#       limits   = { memory = "256Mi", cpu = "200m" }
-#     }
-#     promtail = {
-#       requests = { memory = "64Mi", cpu = "50m" }
-#       limits   = { memory = "128Mi", cpu = "100m" }
-#     }
-#   }
-#   
-#   module_dependencies = [module.monitoring]
-#   tags       = local.common_tags
-# }
+module "logging" {
+  source = "../../modules/platform/logging"
+
+  namespace      = "monitoring"
+  service_type   = "ClusterIP"
+  loki_node_port = 3100
+
+  resources = {
+    loki = {
+      requests = { memory = "256Mi", cpu = "200m" }
+      limits   = { memory = "512Mi", cpu = "400m" }
+    }
+    alloy = {
+      requests = { memory = "128Mi", cpu = "100m" }
+      limits   = { memory = "256Mi", cpu = "200m" }
+    }
+  }
+
+  module_dependencies = [module.monitoring]
+  tags                = local.common_tags
+}

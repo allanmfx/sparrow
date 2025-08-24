@@ -1,5 +1,5 @@
 # =============================================================================
-# Logging Module Outputs
+# Logging Module Outputs - Professional Configuration
 # =============================================================================
 
 output "namespace" {
@@ -12,9 +12,9 @@ output "loki_release_name" {
   value       = helm_release.loki.name
 }
 
-output "promtail_release_name" {
-  description = "Promtail Helm release name"
-  value       = helm_release.promtail.name
+output "alloy_release_name" {
+  description = "Grafana Alloy Helm release name"
+  value       = helm_release.alloy.name
 }
 
 output "loki_chart_version" {
@@ -22,15 +22,15 @@ output "loki_chart_version" {
   value       = helm_release.loki.version
 }
 
-output "promtail_chart_version" {
-  description = "Deployed Promtail chart version"
-  value       = helm_release.promtail.version
+output "alloy_chart_version" {
+  description = "Deployed Alloy chart version"
+  value       = helm_release.alloy.version
 }
 
 output "loki_url" {
   description = "Loki access URL"
   value = var.service_type == "NodePort" ? "http://localhost:${var.loki_node_port}" : (
-    "http://loki-gateway.${var.namespace}.svc.cluster.local"
+    "http://loki.${var.namespace}.svc.cluster.local:3100"
   )
 }
 
@@ -39,8 +39,8 @@ output "kubectl_commands" {
   value = {
     get_pods          = "kubectl get pods -n ${var.namespace}"
     get_services      = "kubectl get svc -n ${var.namespace}"
-    loki_port_forward = var.service_type == "ClusterIP" ? "kubectl port-forward svc/loki-gateway ${var.loki_node_port}:80 -n ${var.namespace}" : null
+    loki_port_forward = var.service_type == "ClusterIP" ? "kubectl port-forward svc/loki ${var.loki_node_port}:3100 -n ${var.namespace}" : null
     loki_logs         = "kubectl logs -l app.kubernetes.io/name=loki -n ${var.namespace}"
-    promtail_logs     = "kubectl logs -l app.kubernetes.io/name=promtail -n ${var.namespace}"
+    alloy_logs        = "kubectl logs -l app.kubernetes.io/name=alloy -n ${var.namespace}"
   }
 }

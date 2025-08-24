@@ -1,0 +1,44 @@
+# =============================================================================
+# Grafana Alloy Helm Values - Professional Configuration
+# Modern unified agent replacing Promtail
+# =============================================================================
+
+# Alloy configuration
+alloy:
+  configMap:
+    content: |-
+      logging { 
+        level = "info" 
+      }
+
+      loki.write "default" {
+        endpoint { 
+          url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push" 
+        }
+      }
+
+      discovery.kubernetes "pods" { 
+        role = "pod" 
+      }
+
+      loki.source.kubernetes "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+        forward_to = [loki.write.default.receiver]
+      }
+
+# DaemonSet configuration
+daemonset:
+  enabled: true
+
+# ServiceMonitor for Prometheus integration
+serviceMonitor:
+  enabled: true
+
+# Resources configuration
+resources:
+  limits:
+    memory: 256Mi
+    cpu: 200m
+  requests:
+    memory: 128Mi
+    cpu: 100m

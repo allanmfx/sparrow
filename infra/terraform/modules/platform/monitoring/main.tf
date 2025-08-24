@@ -1,23 +1,17 @@
 # =============================================================================
-# Monitoring Module
-# Prometheus + Grafana Stack
+# Monitoring Module - Professional Implementation
+# Grafana + Prometheus + Loki Integration
 # =============================================================================
 
 resource "kubernetes_namespace" "monitoring" {
   count = var.create_namespace ? 1 : 0
-
   metadata {
     name = var.namespace
-    labels = {
-      name                          = var.namespace
-      "app.kubernetes.io/name"      = "monitoring"
-      "app.kubernetes.io/component" = "observability"
-    }
   }
 }
 
 resource "helm_release" "prometheus_stack" {
-  name       = var.release_name
+  name       = "prometheus"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
   namespace  = var.namespace
@@ -43,44 +37,67 @@ resource "helm_release" "prometheus_stack" {
   }
 
   set {
-    name  = "prometheus.service.type"
-    value = var.service_type
+    name  = "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues"
+    value = "false"
   }
 
   set {
-    name  = "prometheus.service.nodePort"
-    value = var.prometheus_node_port
+    name  = "prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues"
+    value = "false"
   }
 
-  depends_on = [
-    kubernetes_namespace.monitoring
-  ]
-
-  dynamic "set" {
-    for_each = var.additional_values
-    content {
-      name  = set.key
-      value = set.value
-    }
+  # Add Loki as datasource
+  set {
+    name  = "grafana.additionalDataSources[0].name"
+    value = "Loki"
   }
+
+  set {
+    name  = "grafana.additionalDataSources[0].type"
+    value = "loki"
+  }
+
+  set {
+    name  = "grafana.additionalDataSources[0].access"
+    value = "proxy"
+  }
+
+  set {
+    name  = "grafana.additionalDataSources[0].url"
+    value = "http://loki.monitoring.svc.cluster.local:3100"
+  }
+
+  set {
+    name  = "grafana.additionalDataSources[0].isDefault"
+    value = "false"
+  }
+
+  depends_on = [kubernetes_namespace.monitoring]
 }
 
-# Grafana ConfigMap for datasources and dashboards
+# Grafana configuration for Loki integration
 resource "kubernetes_config_map" "grafana_config" {
-  count = var.create_grafana_config ? 1 : 0
-
-  depends_on = [helm_release.prometheus_stack]
-
+  count = var.create_namespace ? 1 : 0
   metadata {
     name      = "grafana-config"
     namespace = var.namespace
   }
 
   data = {
-    "loki-datasource.yaml" = templatefile("${path.module}/grafana/loki-datasource.yaml", {
-      loki_url = var.loki_url
-    })
-
-    "logs-dashboard.json" = file("${path.module}/grafana/logs-dashboard.json")
+    "grafana.ini" = <<-EOT
+      [server]
+      root_url = http://localhost:3000/
+      
+      [auth.anonymous]
+      enabled = false
+      
+      [datasources]
+      default = prometheus
+      
+      [log]
+      level = info
+    EOT
   }
+
+  depends_on = [helm_release.prometheus_stack]
 }

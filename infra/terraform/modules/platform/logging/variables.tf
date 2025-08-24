@@ -1,5 +1,5 @@
 # =============================================================================
-# Logging Module Variables
+# Logging Module Variables - Professional Configuration
 # =============================================================================
 
 variable "namespace" {
@@ -11,13 +11,13 @@ variable "namespace" {
 variable "loki_chart_version" {
   description = "Loki Helm chart version"
   type        = string
-  default     = "5.41.4"
+  default     = "6.37.0"
 }
 
-variable "promtail_chart_version" {
-  description = "Promtail Helm chart version"
+variable "alloy_chart_version" {
+  description = "Grafana Alloy Helm chart version"
   type        = string
-  default     = "6.17.0"
+  default     = "0.1.0"
 }
 
 variable "service_type" {
@@ -49,7 +49,7 @@ variable "resources" {
         cpu    = string
       })
     })
-    promtail = object({
+    alloy = object({
       requests = object({
         memory = string
         cpu    = string
@@ -63,6 +63,16 @@ variable "resources" {
   default = {
     loki = {
       requests = {
+        memory = "256Mi"
+        cpu    = "200m"
+      }
+      limits = {
+        memory = "512Mi"
+        cpu    = "400m"
+      }
+    }
+    alloy = {
+      requests = {
         memory = "128Mi"
         cpu    = "100m"
       }
@@ -71,35 +81,13 @@ variable "resources" {
         cpu    = "200m"
       }
     }
-    promtail = {
-      requests = {
-        memory = "64Mi"
-        cpu    = "50m"
-      }
-      limits = {
-        memory = "128Mi"
-        cpu    = "100m"
-      }
-    }
   }
 }
 
-variable "enable_s3_storage" {
-  description = "Enable S3 storage for Loki"
-  type        = bool
-  default     = false
-}
-
-variable "s3_bucket" {
-  description = "S3 bucket for Loki storage"
-  type        = string
-  default     = ""
-}
-
 variable "loki_url" {
-  description = "Loki service URL for Promtail"
+  description = "Loki service URL for Alloy"
   type        = string
-  default     = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+  default     = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
 }
 
 variable "module_dependencies" {

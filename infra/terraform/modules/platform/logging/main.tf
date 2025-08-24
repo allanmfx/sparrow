@@ -1,8 +1,9 @@
 # =============================================================================
-# Logging Module
-# Loki + Promtail Stack
+# Logging Module - Professional Implementation
+# Loki + Grafana Alloy Stack (Simplified)
 # =============================================================================
 
+# Loki - Simplified Configuration
 resource "helm_release" "loki" {
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
@@ -24,24 +25,20 @@ resource "helm_release" "loki" {
     value = var.loki_node_port
   }
 
-  depends_on = [var.module_dependencies]
+  depends_on = [var.module_dependencies, helm_release.alloy]
 }
 
-resource "helm_release" "promtail" {
-  name       = "promtail"
+# Grafana Alloy - Modern Agent
+resource "helm_release" "alloy" {
+  name       = "alloy"
   repository = "https://grafana.github.io/helm-charts"
-  chart      = "promtail"
+  chart      = "alloy"
   namespace  = var.namespace
-  version    = var.promtail_chart_version
+  version    = var.alloy_chart_version
 
   values = [
-    file("${path.module}/promtail-values.yaml")
+    file("${path.module}/alloy-values.yaml")
   ]
 
-  set {
-    name  = "config.clients[0].url"
-    value = var.loki_url
-  }
-
-  depends_on = [helm_release.loki]
+  depends_on = [var.module_dependencies]
 }

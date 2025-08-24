@@ -1,115 +1,109 @@
 # =============================================================================
-# Sparrow - Enterprise Architecture
-# Simplified Makefile
+# Sparrow Platform - Professional Makefile
 # =============================================================================
 
-# Colors
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-YELLOW := \033[1;33m
-RED := \033[0;31m
-NC := \033[0m
+.PHONY: help init plan apply destroy full clean status logs test port-forward
 
-# Configuration
-ARGOCD_PASSWORD ?= admin123
-GRAFANA_PASSWORD ?= admin
-
-.PHONY: help data platform build monitor check clean full destroy
-
-help: ## Show this help
-	@echo "Sparrow - Enterprise Architecture"
-	@echo "Usage: make [target]"
+# Default target
+help:
+	@echo "Sparrow Platform - Professional Commands"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(BLUE)%-15s$(NC) %s\n", $$1, $$2}'
+	@echo "Available commands:"
+	@echo "  init         - Initialize Terraform"
+	@echo "  plan         - Plan Terraform changes"
+	@echo "  apply        - Apply Terraform changes"
+	@echo "  destroy      - Destroy all infrastructure"
+	@echo "  full         - Full deployment (init + apply)"
+	@echo "  clean        - Clean up local files"
+	@echo "  status       - Check platform status"
+	@echo "  logs         - View application logs"
+	@echo "  test         - Test platform functionality"
+	@echo "  port-forward - Start port-forward for all services"
 
-# =============================================================================
-# DATA INFRASTRUCTURE
-# =============================================================================
+# Initialize Terraform
+init:
+	@echo "🏗️ Initializing Terraform..."
+	cd infra/terraform/environments/local && terraform init -upgrade
 
-data: ## Start data infrastructure
-	@echo "$(BLUE)🐳 Starting data infrastructure...$(NC)"
-	@docker-compose up -d
+# Plan Terraform changes
+plan:
+	@echo "📋 Planning Terraform changes..."
+	cd infra/terraform/environments/local && terraform plan
 
-data-down: ## Stop data infrastructure
-	@echo "$(YELLOW)🛑 Stopping data infrastructure...$(NC)"
-	@docker-compose down
+# Apply Terraform changes
+apply:
+	@echo "🚀 Applying Terraform changes..."
+	cd infra/terraform/environments/local && terraform apply -auto-approve
 
-data-destroy: ## Destroy data infrastructure
-	@echo "$(RED)🗑️ Destroying data infrastructure...$(NC)"
-	@docker-compose down -v
-	@docker system prune -f
-	@echo "$(GREEN)✅ Data infrastructure destroyed$(NC)"
+# Destroy all infrastructure
+destroy:
+	@echo "🗑️ Destroying infrastructure..."
+	cd infra/terraform/environments/local && terraform destroy -auto-approve
 
-logs: ## View data logs
-	@docker-compose logs -f
+# Full deployment
+full: init apply
+	@echo "✅ Full deployment completed!"
 
-# =============================================================================
-# PLATFORM (TERRAFORM)
-# =============================================================================
+# Clean up local files
+clean:
+	@echo "🧹 Cleaning up local files..."
+	cd infra/terraform/environments/local && rm -rf .terraform .terraform.lock.hcl
+	@echo "✅ Cleanup completed!"
 
-platform: ## Deploy platform
-	@echo "$(BLUE)🏗️ Deploying platform...$(NC)"
-	@cd infra/terraform/environments/local && terraform init && terraform apply -auto-approve
-
-platform-plan: ## Plan Terraform changes
-	@echo "$(BLUE)📋 Planning changes...$(NC)"
-	@cd infra/terraform/environments/local && terraform init && terraform plan
-
-platform-destroy: ## Destroy platform
-	@echo "$(RED)🗑️ Destroying platform...$(NC)"
-	@cd infra/terraform/environments/local && terraform init && terraform destroy -auto-approve
-	@rm -rf infra/terraform/environments/local/.terraform
-	@rm -rf infra/terraform/environments/local/terraform.tfstate*
-	@echo "$(GREEN)✅ Platform destroyed$(NC)"
-
-
-
-# =============================================================================
-# MONITORING
-# =============================================================================
-
-monitor: ## Open monitoring dashboards
-	@echo "$(BLUE)📊 Opening dashboards...$(NC)"
-	@open http://localhost:30000 || echo "$(YELLOW)Grafana: http://localhost:30000 (admin/$(GRAFANA_PASSWORD))$(NC)"
-	@open http://localhost:30080 || echo "$(YELLOW)ArgoCD: http://localhost:30080 (admin/$(ARGOCD_PASSWORD))$(NC)"
-
-check: ## Check environment status
-	@echo "$(BLUE)✅ Checking environment...$(NC)"
-	@docker-compose ps --format "table {{.Name}}\t{{.Status}}"
+# Check platform status
+status:
+	@echo "📊 Checking platform status..."
 	@echo ""
-	@kubectl cluster-info 2>/dev/null && echo "$(GREEN)✅ Kubernetes OK$(NC)" || echo "$(RED)❌ Kubernetes not responding$(NC)"
+	@echo "🔍 Kubernetes pods:"
+	kubectl get pods -n argocd
+	@echo ""
+	kubectl get pods -n monitoring
+	@echo ""
+	@echo "🌐 Services:"
+	kubectl get svc -n argocd
+	@echo ""
+	kubectl get svc -n monitoring
 
-# =============================================================================
-# UTILITIES
-# =============================================================================
+# View application logs
+logs:
+	@echo "📝 Viewing application logs..."
+	@echo "Press Ctrl+C to exit"
+	kubectl logs -f -n monitoring -l app.kubernetes.io/name=loki
 
-clean: ## Clean everything (soft cleanup)
-	@echo "$(YELLOW)🧹 Cleaning everything...$(NC)"
-	@docker-compose down -v
-	@docker system prune -f
-	@rm -rf infra/terraform/environments/local/.terraform
-	@rm -rf infra/terraform/environments/local/terraform.tfstate*
-	@echo "$(GREEN)✅ Cleanup completed$(NC)"
+# Start port-forward for all services
+port-forward:
+	@echo "🌐 Starting port-forward for all services..."
+	@echo "Grafana: http://localhost:30000 (admin/admin)"
+	@echo "ArgoCD:  http://localhost:30080 (admin/argocd)"
+	@echo "Loki:    http://localhost:3100"
+	@echo ""
+	@echo "Press Ctrl+C to stop all port-forwards"
+	kubectl port-forward -n monitoring svc/prometheus-grafana 30000:80 &
+	kubectl port-forward -n argocd svc/argocd-server 30080:443 &
+	kubectl port-forward -n monitoring svc/loki 3100:3100 &
+	wait
 
-destroy: ## Destroy everything completely
-	@echo "$(RED)🔥 DESTROYING EVERYTHING...$(NC)"
-	@echo "$(YELLOW)⚠️ This will destroy ALL infrastructure!$(NC)"
-	@read -p "Are you sure? Type 'yes' to confirm: " confirm; \
-	if [ "$$confirm" = "yes" ]; then \
-		echo "$(RED)🗑️ Starting complete destruction...$(NC)"; \
-		make platform-destroy; \
-		make data-destroy; \
-		echo "$(GREEN)✅ Everything destroyed successfully!$(NC)"; \
-	else \
-		echo "$(YELLOW)❌ Destruction cancelled$(NC)"; \
-	fi
+# Test platform functionality
+test:
+	@echo "🧪 Testing platform functionality..."
+	@echo ""
+	@echo "1. Testing Loki connectivity..."
+	kubectl port-forward -n monitoring svc/loki 3100:3100 &
+	@sleep 3
+	@curl -H "Content-Type: application/json" -XPOST -s "http://127.0.0.1:3100/loki/api/v1/push" \
+		--data-raw '{"streams": [{"stream": {"job": "test", "cluster": "sparrow-local"}, "values": [["'$$(date +%s)'000000000", "Test log from Sparrow platform!"]]}]}' || echo "❌ Loki test failed"
+	@echo ""
+	@echo "2. Testing Grafana connectivity..."
+	kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80 &
+	@sleep 3
+	@curl -s http://127.0.0.1:3000 | grep -q "Grafana" && echo "✅ Grafana is accessible" || echo "❌ Grafana test failed"
+	@echo ""
+	@echo "3. Testing ArgoCD connectivity..."
+	kubectl port-forward -n argocd svc/argocd-server 8080:443 &
+	@sleep 3
+	@curl -k -s https://127.0.0.1:8080 | grep -q "Argo CD" && echo "✅ ArgoCD is accessible" || echo "❌ ArgoCD test failed"
+	@echo ""
+	@echo "🎉 Platform testing completed!"
 
-full: ## Full setup (data + platform)
-	@echo "$(BLUE)🚀 Full setup...$(NC)"
-	@make data
-	@make platform
-	@echo "$(GREEN)✅ Full setup completed!$(NC)"
-	@echo "$(BLUE)📊 Access your services:$(NC)"
-	@echo "  • Grafana: http://localhost:30000 (admin/$(GRAFANA_PASSWORD))$(NC)"
-	@echo "  • ArgoCD: http://localhost:30080 (admin/$(ARGOCD_PASSWORD))$(NC)"
-	@echo "  • Prometheus: http://localhost:30001$(NC)"
+# Platform deployment (alias for full)
+platform: full
