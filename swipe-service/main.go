@@ -89,9 +89,9 @@ func Seed() {
 
 	for i := 1; i <= totalUsers; i++ {
 		u := User{
-			Name:     gofakeit.Name(),
-			Email:    fmt.Sprintf("user%d@example.com", i),
-			Location: fmt.Sprintf("POINT(%f %f)", randomBrazilLat(), randomBrazilLon()),
+			Name:      gofakeit.Name(),
+			Email:     fmt.Sprintf("user%d@example.com", i),
+			Location:  fmt.Sprintf("POINT(%f %f)", randomBrazilLon(), randomBrazilLat())
 		}
 
 		if err := db.Create(&u).Error; err != nil {

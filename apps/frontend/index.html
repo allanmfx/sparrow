@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="/src/style.css" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+  <div class="container mt-20 mx-auto flex flex-col gap-4 items-center">
+    <h1 class="text-3xl font-bold">
+      Swiper Application
+    </h1>
+
+    <div class="flex flex-row gap-4 justify-center items-center" x-data="swiper()">
+      <button type="button" class="p-2 bg-gray-200 border border-black cursor-pointer" @click="swipe">No</button>
+      <div class="flex flex-col gap-2 w-[250px]">
+        <img :src="currentImageUrl" alt="Person" class="w-[250px] h-[400px]">
+        <div class="flex flex-col gap-1 items-center">
+          <span class="font-bold">Name</span>
+          <span>Likes something else...</span>
+        </div>
+      </div>
+      <button type="button" class="p-2 bg-gray-200 border border-black cursor-pointer" @click="swipe">Yes</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('swiper', () => ({
+        baseImageUrl: 'https://thispersondoesnotexist.com/',
+        currentImageUrl: 'https://thispersondoesnotexist.com/',
+
+        swipe() {
+          this.currentImageUrl = this.baseImageUrl + '?timestamp=' + (new Date().getTime());
+        }
+      }));
+    });
+  </script>
+</body>
+</html>
